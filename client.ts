@@ -37,24 +37,32 @@ function Quiz(props: {bestQuiz: BestQuiz; [key: string]: any}) {
         null,
         ce('p', null, 'contexts: ' + JSON.stringify(contexts)),
         ce('p', null, 'clozes: ' + JSON.stringify(clozes)),
-        ce('button', {
-          onClick: _ => {
-            let now: Date = new Date();
-            let scale = 1;
-            let correct =
-                props.bestQuiz.finalQuizzable.postQuiz(props.bestQuiz.finalQuiz, clozes, [answer], now, scale);
-            let summary = props.bestQuiz.finalQuizzable.header;
-            const init = curtiz.markdown.SentenceBlock.init;
-            summary = summary.slice(summary.indexOf(init) + init.length);
-            const finalSummary =
-                correct ? ('💥 🔥 🎆 🎇 👏 🙌 👍 👌! ' + summary)
-                        : ('😭 🙅‍♀️ 🙅‍♂️ 👎 🤬. Expected answer: ' + clozes.join(' | ') +
-                           ' — ' + summary);
-            setFinalSummary(finalSummary);
-          }
-        },
-           'Submit'),
-        ce('input', {type: 'text', value: answer, onChange: event => setAnswer(event.target.value)}),
+        ce(
+            'form',
+            {
+              onSubmit: () => {
+                let now: Date = new Date();
+                let scale = 1;
+                let correct =
+                    props.bestQuiz.finalQuizzable.postQuiz(props.bestQuiz.finalQuiz, clozes, [answer], now, scale);
+                let summary = props.bestQuiz.finalQuizzable.header;
+                const init = curtiz.markdown.SentenceBlock.init;
+                summary = summary.slice(summary.indexOf(init) + init.length);
+                const finalSummary =
+                    correct ? ('💥 🔥 🎆 🎇 👏 🙌 👍 👌! ' + summary)
+                            : ('😭 🙅‍♀️ 🙅‍♂️ 👎 🤬. Expected answer: ' + clozes.join(' | ') +
+                               ' — ' + summary);
+                setFinalSummary(finalSummary);
+              }
+            },
+            ce(
+                'label',
+                null,
+                'Answer:',
+                ce('input', {type: 'text', value: answer, onChange: e => setAnswer(e.target.value)}),
+                ),
+            ce('input', {type: 'submit', value: 'Submit'}),
+            ),
     );
   }
   return ce('div', null, finalSummary);

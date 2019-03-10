@@ -43,8 +43,8 @@ function Quiz(props) {
     const [finalSummary, setFinalSummary] = react_1.useState('');
     const { contexts, clozes } = props.bestQuiz.finalQuiz.preQuiz();
     if (!finalSummary) {
-        return ce('div', null, ce('p', null, 'contexts: ' + JSON.stringify(contexts)), ce('p', null, 'clozes: ' + JSON.stringify(clozes)), ce('button', {
-            onClick: _ => {
+        return ce('div', null, ce('p', null, 'contexts: ' + JSON.stringify(contexts)), ce('p', null, 'clozes: ' + JSON.stringify(clozes)), ce('form', {
+            onSubmit: () => {
                 let now = new Date();
                 let scale = 1;
                 let correct = props.bestQuiz.finalQuizzable.postQuiz(props.bestQuiz.finalQuiz, clozes, [answer], now, scale);
@@ -56,7 +56,7 @@ function Quiz(props) {
                         ' — ' + summary);
                 setFinalSummary(finalSummary);
             }
-        }, 'Submit'), ce('input', { type: 'text', value: answer, onChange: event => setAnswer(event.target.value) }));
+        }, ce('label', null, 'Answer:', ce('input', { type: 'text', value: answer, onChange: e => setAnswer(e.target.value) })), ce('input', { type: 'submit', value: 'Submit' })));
     }
     return ce('div', null, finalSummary);
 }
