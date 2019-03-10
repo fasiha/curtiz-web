@@ -27,45 +27,63 @@ type BestQuiz = {
   finalIndex: number
 };
 
-function Quiz(props: {bestQuiz: BestQuiz; [key: string]: any}) {
+function Quiz(props: {allDoneFunc: () => void, bestQuiz: BestQuiz; [key: string]: any}) {
   const [answer, setAnswer] = useState('');
-  const [finalSummary, setFinalSummary] = useState('');
+  const [finalSummaries, setFinalSummaries] = useState([] as string[]);
   const {contexts, clozes} = props.bestQuiz.finalQuiz.preQuiz();
-  if (!finalSummary) {
-    return ce(
-        'div',
-        null,
-        ce('p', null, 'contexts: ' + JSON.stringify(contexts)),
-        ce('p', null, 'clozes: ' + JSON.stringify(clozes)),
-        ce(
-            'form',
-            {
-              onSubmit: () => {
-                let now: Date = new Date();
-                let scale = 1;
-                let correct =
-                    props.bestQuiz.finalQuizzable.postQuiz(props.bestQuiz.finalQuiz, clozes, [answer], now, scale);
-                let summary = props.bestQuiz.finalQuizzable.header;
-                const init = curtiz.markdown.SentenceBlock.init;
-                summary = summary.slice(summary.indexOf(init) + init.length);
-                const finalSummary =
-                    correct ? ('💥 🔥 🎆 🎇 👏 🙌 👍 👌! ' + summary)
-                            : ('😭 🙅‍♀️ 🙅‍♂️ 👎 🤬. Expected answer: ' + clozes.join(' | ') +
-                               ' — ' + summary);
-                setFinalSummary(finalSummary);
-              }
-            },
-            ce(
-                'label',
-                null,
-                'Answer:',
-                ce('input', {type: 'text', value: answer, onChange: e => setAnswer(e.target.value)}),
-                ),
-            ce('input', {type: 'submit', value: 'Submit'}),
-            ),
-    );
+  return ce(
+      'div',
+      null,
+      ce('p', null, 'contexts: ' + JSON.stringify(contexts)),
+      ce('p', null, 'clozes: ' + JSON.stringify(clozes)),
+      ce(
+          'form',
+          {
+            onSubmit: (e) => {
+              e.preventDefault();
+              let now: Date = new Date();
+              let scale = 1;
+              let correct =
+                  props.bestQuiz.finalQuizzable.postQuiz(props.bestQuiz.finalQuiz, clozes, [answer], now, scale);
+              let summary = props.bestQuiz.finalQuizzable.header;
+              const init = curtiz.markdown.SentenceBlock.init;
+              summary = summary.slice(summary.indexOf(init) + init.length);
+              const finalSummary =
+                  correct ? ('💥 🔥 🎆 🎇 👏 🙌 👍 👌! ' + summary)
+                          : ('😭 🙅‍♀️ 🙅‍♂️ 👎 🤬. Expected answer: ' + clozes.join(' | ') +
+                             ' — ' + summary);
+              setFinalSummaries(finalSummaries.concat(finalSummary));
+              props.allDoneFunc();
+            }
+          },
+          ce(
+              'label',
+              null,
+              'Answer:',
+              ce('input', {type: 'text', value: answer, onChange: e => setAnswer(e.target.value)}),
+              ),
+          ce('input', {type: 'submit', value: 'Submit'}),
+          ),
+      ce('ul', null, ...finalSummaries.map(s => ce('li', null, s))),
+  );
+}
+
+function IzumiSession(props: {[key: string]: any, contents: curtiz.markdown.Content[][]}) {
+  const [questionNumber, setQuestionNumber] = useState(0);
+  const {finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex} =
+      contentsToBestQuiz(props.contents, false);
+  console.log(finalQuiz, finalLozengeBlock, finalPrediction, finalIndex)
+  if (!(finalQuiz && finalLozengeBlock && finalPrediction && typeof finalIndex === 'number')) {
+    return ce('h1', null, 'No best quiz found.');
   }
-  return ce('div', null, finalSummary);
+  return ce(
+      'div',
+      null,
+      ce(Quiz, {
+        allDoneFunc: () => setQuestionNumber(questionNumber + 1),
+        bestQuiz: {finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex}
+      }),
+  );
 }
 
 type IzumiState = {
@@ -78,7 +96,10 @@ class Izumi extends React.Component {
   constructor(props: any) {
     super(props);
     this.state = {
-      markdownFilenames: ['/markdowns/HJ.md', '/markdowns/grade1.md'],
+      markdownFilenames: [
+        '/markdowns/HJ.md',
+        // '/markdowns/grade1.md',
+      ],
       markdownRead: false,
       contents: [],
       markdowns: [],
@@ -94,17 +115,7 @@ class Izumi extends React.Component {
   }
   render() {
     if (!this.state.markdownRead) { return ce('h1', null, 'Not ready.'); }
-    const {finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex} =
-        contentsToBestQuiz(this.state.contents, false);
-    console.log(finalQuiz, finalLozengeBlock, finalPrediction, finalIndex)
-    if (!(finalQuiz && finalLozengeBlock && finalPrediction && typeof finalIndex === 'number')) {
-      return ce('h1', null, 'No best quiz found.');
-    }
-    return (ce(Quiz, {bestQuiz: {finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex}}));
-    /*
-    return ce('p', null, 'Gonna quiz you on:::' + finalLozengeBlock.header + ' from ' +
-    this.state.markdownFilenames[finalIndex]);
-    */
+    return ce(IzumiSession, {contents: this.state.contents});
   }
   state: IzumiState;
 }
