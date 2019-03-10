@@ -18,8 +18,10 @@
     "typescript": "^3.3.3333"
   },
   "dependencies": {
+    "curtiz": "file:../curtiz",
     "express": "^4.16.4",
     "fetch-ponyfill": "^6.0.2",
+    "globby": "^9.0.0",
     "react": "^16.8.3",
     "react-dom": "^16.8.3"
   }
