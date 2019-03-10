@@ -20,7 +20,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const curtiz = __importStar(require("curtiz"));
-const react_1 = __importDefault(require("react"));
+const react_1 = __importStar(require("react"));
 const react_dom_1 = __importDefault(require("react-dom"));
 const ce = react_1.default.createElement;
 function getFile(filename) {
@@ -39,38 +39,27 @@ function contentsToBestQuiz(contents, randomize) {
     const bestQuizzes = contents.map(content => findBestQuiz(contentToLearned(content), randomize).finalQuizzable);
     return findBestQuiz(bestQuizzes, randomize);
 }
-class Quiz extends react_1.default.Component {
-    constructor(props) {
-        super(props);
-        this.props = props;
-        const { contexts, clozes } = props.finalQuiz.preQuiz();
-        this.contexts = contexts;
-        this.clozes = clozes;
-        this.state = { answer: '', finalSummary: '' };
-        this.handleChange = this.handleChange.bind(this);
-        this.handleClick = this.handleClick.bind(this);
+function Quiz(props) {
+    const [answer, setAnswer] = react_1.useState('');
+    const [finalSummary, setFinalSummary] = react_1.useState('');
+    const { contexts, clozes } = props.bestQuiz.finalQuiz.preQuiz();
+    if (!finalSummary) {
+        return ce('div', null, ce('p', null, 'contexts: ' + JSON.stringify(contexts)), ce('p', null, 'clozes: ' + JSON.stringify(clozes)), ce('button', {
+            onClick: _ => {
+                let now = new Date();
+                let scale = 1;
+                let correct = props.bestQuiz.finalQuizzable.postQuiz(props.bestQuiz.finalQuiz, clozes, [answer], now, scale);
+                let summary = props.bestQuiz.finalQuizzable.header;
+                const init = curtiz.markdown.SentenceBlock.init;
+                summary = summary.slice(summary.indexOf(init) + init.length);
+                const finalSummary = correct ? ('💥 🔥 🎆 🎇 👏 🙌 👍 👌! ' + summary)
+                    : ('😭 🙅‍♀️ 🙅‍♂️ 👎 🤬. Expected answer: ' + clozes.join(' | ') +
+                        ' — ' + summary);
+                setFinalSummary(finalSummary);
+            }
+        }, 'Submit'), ce('input', { type: 'text', value: answer, onChange: event => setAnswer(event.target.value) }));
     }
-    handleChange(event) { this.setState({ answer: event.target.value }); }
-    handleClick(event) {
-        console.log('yowup!');
-        let answer = this.state.answer;
-        let now = new Date();
-        let scale = 1;
-        let correct = this.props.finalQuizzable.postQuiz(this.props.finalQuiz, this.clozes, [answer], now, scale);
-        let summary = this.props.finalQuizzable.header;
-        const init = curtiz.markdown.SentenceBlock.init;
-        summary = summary.slice(summary.indexOf(init) + init.length);
-        const finalSummary = correct ? ('💥 🔥 🎆 🎇 👏 🙌 👍 👌! ' + summary)
-            : ('😭 🙅‍♀️ 🙅‍♂️ 👎 🤬. Expected answer: ' + this.clozes.join(' | ') + ' — ' +
-                summary);
-        this.setState({ finalSummary });
-    }
-    render() {
-        if (!this.state.finalSummary) {
-            return ce('div', null, ce('p', null, 'contexts: ' + JSON.stringify(this.contexts)), ce('p', null, 'clozes: ' + JSON.stringify(this.clozes)), ce('button', { onClick: this.handleClick }, 'Submit'), ce('input', { type: 'text', value: this.state.answer, onChange: this.handleChange }));
-        }
-        return ce('div', null, this.state.finalSummary);
-    }
+    return ce('div', null, finalSummary);
 }
 class Izumi extends react_1.default.Component {
     constructor(props) {
@@ -101,7 +90,7 @@ class Izumi extends react_1.default.Component {
         if (!(finalQuiz && finalLozengeBlock && finalPrediction && typeof finalIndex === 'number')) {
             return ce('h1', null, 'No best quiz found.');
         }
-        return (ce(Quiz, { finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex }));
+        return (ce(Quiz, { bestQuiz: { finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex } }));
         /*
         return ce('p', null, 'Gonna quiz you on:::' + finalLozengeBlock.header + ' from ' +
         this.state.markdownFilenames[finalIndex]);
