@@ -27,6 +27,11 @@ type BestQuiz = {
   finalIndex: number
 };
 
+function mapRight<T, U>(v: T[], mapper: (x: T, i?: number, v?: T[]) => U): U[] {
+  const N = v.length;
+  return Array.from(Array(N), (_, i) => mapper(v[N - i - 1], N - i - 1, v));
+}
+
 function Quiz(props: {allDoneFunc: () => void, bestQuiz: BestQuiz; [key: string]: any}) {
   const [answer, setAnswer] = useState('');
   const [finalSummaries, setFinalSummaries] = useState([] as string[]);
@@ -48,12 +53,12 @@ function Quiz(props: {allDoneFunc: () => void, bestQuiz: BestQuiz; [key: string]
               let summary = props.bestQuiz.finalQuizzable.header;
               const init = curtiz.markdown.SentenceBlock.init;
               summary = summary.slice(summary.indexOf(init) + init.length);
-              const finalSummary =
-                  correct ? ('💥 🔥 🎆 🎇 👏 🙌 👍 👌! ' + summary)
-                          : ('😭 🙅‍♀️ 🙅‍♂️ 👎 🤬. Expected answer: ' + clozes.join(' | ') +
-                             ' — ' + summary);
+              const finalSummary = correct ? ('💥 🔥 🎆 🎇 👏 🙌 👍 👌! ' + summary)
+                                           : (`😭 🙅‍♀️ 🙅‍♂️ 👎 🤬. ${answer} ∉ 【${
+                                                 clozes.join(', ')}】 for ${summary}`);
               setFinalSummaries(finalSummaries.concat(finalSummary));
               props.allDoneFunc();
+              setAnswer('');
             }
           },
           ce(
@@ -64,7 +69,7 @@ function Quiz(props: {allDoneFunc: () => void, bestQuiz: BestQuiz; [key: string]
               ),
           ce('input', {type: 'submit', value: 'Submit'}),
           ),
-      ce('ul', null, ...finalSummaries.map(s => ce('li', null, s))),
+      ce('ul', null, ...mapRight(finalSummaries, s => ce('li', null, s))),
   );
 }
 
@@ -97,7 +102,8 @@ class Izumi extends React.Component {
     super(props);
     this.state = {
       markdownFilenames: [
-        '/markdowns/HJ.md',
+        '/markdowns/test.md',
+        // '/markdowns/HJ.md',
         // '/markdowns/grade1.md',
       ],
       markdownRead: false,

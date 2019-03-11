@@ -39,6 +39,10 @@ function contentsToBestQuiz(contents, randomize) {
     const bestQuizzes = contents.map(content => findBestQuiz(contentToLearned(content), randomize).finalQuizzable);
     return findBestQuiz(bestQuizzes, randomize);
 }
+function mapRight(v, mapper) {
+    const N = v.length;
+    return Array.from(Array(N), (_, i) => mapper(v[N - i - 1], N - i - 1, v));
+}
 function Quiz(props) {
     const [answer, setAnswer] = react_1.useState('');
     const [finalSummaries, setFinalSummaries] = react_1.useState([]);
@@ -53,12 +57,12 @@ function Quiz(props) {
             const init = curtiz.markdown.SentenceBlock.init;
             summary = summary.slice(summary.indexOf(init) + init.length);
             const finalSummary = correct ? ('💥 🔥 🎆 🎇 👏 🙌 👍 👌! ' + summary)
-                : ('😭 🙅‍♀️ 🙅‍♂️ 👎 🤬. Expected answer: ' + clozes.join(' | ') +
-                    ' — ' + summary);
+                : (`😭 🙅‍♀️ 🙅‍♂️ 👎 🤬. ${answer} ∉ 【${clozes.join(', ')}】 for ${summary}`);
             setFinalSummaries(finalSummaries.concat(finalSummary));
             props.allDoneFunc();
+            setAnswer('');
         }
-    }, ce('label', null, 'Answer:', ce('input', { type: 'text', value: answer, onChange: e => setAnswer(e.target.value) })), ce('input', { type: 'submit', value: 'Submit' })), ce('ul', null, ...finalSummaries.map(s => ce('li', null, s))));
+    }, ce('label', null, 'Answer:', ce('input', { type: 'text', value: answer, onChange: e => setAnswer(e.target.value) })), ce('input', { type: 'submit', value: 'Submit' })), ce('ul', null, ...mapRight(finalSummaries, s => ce('li', null, s))));
 }
 function IzumiSession(props) {
     const [questionNumber, setQuestionNumber] = react_1.useState(0);
@@ -77,7 +81,7 @@ class Izumi extends react_1.default.Component {
         super(props);
         this.state = {
             markdownFilenames: [
-                '/markdowns/HJ.md',
+                '/markdowns/test.md',
             ],
             markdownRead: false,
             contents: [],
