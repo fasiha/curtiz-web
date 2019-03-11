@@ -64,17 +64,86 @@ function Quiz(props) {
         }
     }, ce('label', null, 'Answer:', ce('input', { type: 'text', value: answer, onChange: e => setAnswer(e.target.value) })), ce('input', { type: 'submit', value: 'Submit' })), ce('ul', null, ...mapRight(finalSummaries, s => ce('li', null, s))));
 }
+function ModeSelect(props) {
+    return ce('div', null, ce('input', {
+        type: 'radio',
+        id: 'modeQuiz',
+        name: 'quizSelect',
+        value: 'modeQuiz',
+        onClick: e => props.tellparent('quiz')
+    }), ce('label', { htmlFor: 'modeQuiz' }, 'Quiz'), ce('input', {
+        type: 'radio',
+        id: 'modeLearn',
+        name: 'quizSelect',
+        value: 'modeLearn',
+        onClick: e => props.tellparent('learn')
+    }), ce('label', { htmlFor: 'modeLearn' }, 'Learn'));
+}
+function* enumerate(v, n = 0) {
+    for (let x of v) {
+        yield [n++, x];
+    }
+}
+exports.enumerate = enumerate;
 function IzumiSession(props) {
     const [questionNumber, setQuestionNumber] = react_1.useState(0);
-    const { finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex } = contentsToBestQuiz(props.contents, false);
-    console.log(finalQuiz, finalLozengeBlock, finalPrediction, finalIndex);
-    if (!(finalQuiz && finalLozengeBlock && finalPrediction && typeof finalIndex === 'number')) {
-        return ce('h1', null, 'No best quiz found.');
+    const [mode, setMode] = react_1.useState('quiz');
+    let modeElement;
+    if (mode === 'quiz') {
+        const { finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex } = contentsToBestQuiz(props.contents, false);
+        // console.log(finalQuiz, finalLozengeBlock, finalPrediction, finalIndex)
+        if (!(finalQuiz && finalLozengeBlock && finalPrediction && typeof finalIndex === 'number')) {
+            modeElement = ce('h1', null, 'No quizzes found. Learn something!');
+        }
+        else {
+            modeElement = ce('div', null, ce(Quiz, {
+                allDoneFunc: () => setQuestionNumber(questionNumber + 1),
+                bestQuiz: { finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex }
+            }));
+        }
     }
-    return ce('div', null, ce(Quiz, {
-        allDoneFunc: () => setQuestionNumber(questionNumber + 1),
-        bestQuiz: { finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex }
-    }));
+    else {
+        let fileIndex = -1;
+        let toLearn;
+        for (const [idx, content] of enumerate(props.contents)) {
+            fileIndex = idx;
+            toLearn = content.find(o => o instanceof curtiz.markdown.LozengeBlock &&
+                !o.learned());
+            if (toLearn) {
+                break;
+            }
+        }
+        modeElement = ce(Learn, { fileIndex, toLearn, allDoneFunc: () => setQuestionNumber(questionNumber + 1) });
+    }
+    return ce('div', null, ce(ModeSelect, {
+        tellparent: (newMode) => {
+            if (newMode !== mode) {
+                setMode(newMode);
+            }
+        }
+    }), modeElement);
+}
+function Learn(props) {
+    const [input, setInput] = react_1.useState('1');
+    const toLearn = props.toLearn;
+    if (!toLearn) {
+        return ce('h1', null, 'Nothing to learn!');
+    }
+    if (toLearn instanceof curtiz.markdown.SentenceBlock) {
+        return ce('div', null, ce('p', null, `Learn this: ${toLearn.sentence}, ${toLearn.reading}, ${toLearn.translation}`), ce('form', {
+            onSubmit: e => {
+                e.preventDefault();
+                let scale = parseFloat(input) || 1;
+                toLearn.learn(new Date(), scale);
+                props.allDoneFunc();
+                setInput('1');
+            }
+        }, ce('label', null, 'Scale: ', ce('input', { type: 'text', value: input, onChange: e => setInput(e.target.value) })), ce('input', { type: 'submit', value: 'Learn' })));
+    }
+    else {
+        return ce('h1', null, 'Error! Unknown type to learn.');
+    }
+    // writer(texts[fileIndex], contentToString(contents[fileIndex]), filenames[fileIndex], modifiedTimes[fileIndex]);
 }
 class Izumi extends react_1.default.Component {
     constructor(props) {
