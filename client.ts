@@ -32,7 +32,7 @@ function mapRight<T, U>(v: T[], mapper: (x: T, i?: number, v?: T[]) => U): U[] {
   return Array.from(Array(N), (_, i) => mapper(v[N - i - 1], N - i - 1, v));
 }
 
-function Quiz(props: {allDoneFunc: () => void, bestQuiz: BestQuiz; [key: string]: any}) {
+function Quiz(props: {allDoneFunc: () => void, bestQuiz: BestQuiz}) {
   const [answer, setAnswer] = useState('');
   const [finalSummaries, setFinalSummaries] = useState([] as string[]);
   const {contexts, clozes} = props.bestQuiz.finalQuiz.preQuiz();
@@ -73,22 +73,106 @@ function Quiz(props: {allDoneFunc: () => void, bestQuiz: BestQuiz; [key: string]
   );
 }
 
-function IzumiSession(props: {[key: string]: any, contents: curtiz.markdown.Content[][]}) {
-  const [questionNumber, setQuestionNumber] = useState(0);
-  const {finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex} =
-      contentsToBestQuiz(props.contents, false);
-  console.log(finalQuiz, finalLozengeBlock, finalPrediction, finalIndex)
-  if (!(finalQuiz && finalLozengeBlock && finalPrediction && typeof finalIndex === 'number')) {
-    return ce('h1', null, 'No best quiz found.');
-  }
+function ModeSelect(props: {tellparent: (mode: Mode) => void}) {
   return ce(
       'div',
       null,
-      ce(Quiz, {
-        allDoneFunc: () => setQuestionNumber(questionNumber + 1),
-        bestQuiz: {finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex}
+      ce('input', {
+        type: 'radio',
+        id: 'modeQuiz',
+        name: 'quizSelect',
+        value: 'modeQuiz',
+        onClick: e => props.tellparent('quiz')
       }),
-  );
+      ce('label', {htmlFor: 'modeQuiz'}, 'Quiz'),
+      ce('input', {
+        type: 'radio',
+        id: 'modeLearn',
+        name: 'quizSelect',
+        value: 'modeLearn',
+        onClick: e => props.tellparent('learn')
+      }),
+      ce('label', {htmlFor: 'modeLearn'}, 'Learn'),
+  )
+}
+export function* enumerate<T>(v: T[]|IterableIterator<T>, n: number = 0): IterableIterator<[number, T]> {
+  for (let x of v) { yield [n++, x]; }
+}
+
+type Mode = 'quiz'|'learn';
+function IzumiSession(props: {contents: curtiz.markdown.Content[][]}) {
+  const [questionNumber, setQuestionNumber] = useState(0);
+  const [mode, setMode] = useState('quiz' as Mode);
+
+  let modeElement;
+  if (mode === 'quiz') {
+    const {finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex} =
+        contentsToBestQuiz(props.contents, false);
+    // console.log(finalQuiz, finalLozengeBlock, finalPrediction, finalIndex)
+    if (!(finalQuiz && finalLozengeBlock && finalPrediction && typeof finalIndex === 'number')) {
+      modeElement = ce('h1', null, 'No quizzes found. Learn something!');
+    } else {
+      modeElement = ce(
+          'div',
+          null,
+          ce(Quiz, {
+            allDoneFunc: () => setQuestionNumber(questionNumber + 1),
+            bestQuiz: {finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex}
+          }),
+      );
+    }
+  } else {
+    let fileIndex: number = -1;
+    let toLearn: curtiz.markdown.LozengeBlock|undefined;
+    for (const [idx, content] of enumerate(props.contents)) {
+      fileIndex = idx;
+      toLearn = content.find(o => o instanceof curtiz.markdown.LozengeBlock &&
+                                  !o.learned()) as (curtiz.markdown.LozengeBlock | undefined);
+      if (toLearn) { break; }
+    }
+    modeElement = ce(Learn, {fileIndex, toLearn, allDoneFunc: () => setQuestionNumber(questionNumber + 1)});
+  }
+  return ce('div', null, ce(ModeSelect, {
+              tellparent: (newMode: Mode) => {
+                if (newMode !== mode) { setMode(newMode); }
+              }
+            }),
+            modeElement);
+}
+
+function Learn(props: {toLearn: curtiz.markdown.LozengeBlock|undefined, fileIndex: number, allDoneFunc: () => void}) {
+  const [input, setInput] = useState('1');
+  const toLearn = props.toLearn;
+  if (!toLearn) { return ce('h1', null, 'Nothing to learn!'); }
+  if (toLearn instanceof curtiz.markdown.SentenceBlock) {
+    return ce(
+        'div',
+        null,
+        ce('p', null, `Learn this: ${toLearn.sentence}, ${toLearn.reading}, ${toLearn.translation}`),
+        ce(
+            'form',
+            {
+              onSubmit: e => {
+                e.preventDefault();
+                let scale = parseFloat(input) || 1;
+                toLearn.learn(new Date(), scale)
+                props.allDoneFunc();
+                setInput('1');
+              }
+            },
+            ce(
+                'label',
+                null,
+                'Scale: ',
+                ce('input', {type: 'text', value: input, onChange: e => setInput(e.target.value)}),
+                ),
+            ce('input', {type: 'submit', value: 'Learn'}),
+            ),
+    );
+  } else {
+    return ce('h1', null, 'Error! Unknown type to learn.');
+  }
+  // writer(texts[fileIndex], contentToString(contents[fileIndex]), filenames[fileIndex], modifiedTimes[fileIndex]);
 }
 
 type IzumiState = {
