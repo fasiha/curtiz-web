@@ -1,6 +1,9 @@
 import * as curtiz from 'curtiz';
-import React, {useState} from 'react';
+import React, {useEffect, useReducer, useState} from 'react';
 import ReactDOM from 'react-dom';
+
+import * as gitio from './gitio';
+
 const ce = React.createElement;
 
 async function getFile(filename: string): Promise<string> {
@@ -175,11 +178,75 @@ function Learn(props: {toLearn: curtiz.markdown.LozengeBlock|undefined, fileInde
   // writer(texts[fileIndex], contentToString(contents[fileIndex]), filenames[fileIndex], modifiedTimes[fileIndex]);
 }
 
+function Login(props: {tellparent: (a: string, b: string, c: string) => void}) {
+  const [url, setURL] = useState('');
+  const [username, setUsername] = useState('');
+  const [token, setToken] = useState('');
+  return ce(
+      'div',
+      null,
+      ce(
+          'form',
+          {
+            onSubmit: e => {
+              e.preventDefault();
+              props.tellparent(url, username, token);
+            }
+          },
+          ce('label', null, 'URL: ', ce('input', {type: 'text', value: url, onChange: e => setURL(e.target.value)})),
+          ce('label', null,
+             'Username: ', ce('input', {type: 'text', value: username, onChange: e => setUsername(e.target.value)})),
+          ce('label', null,
+             'token: ', ce('input', {type: 'password', value: token, onChange: e => setToken(e.target.value)})),
+          ce('input', {type: 'submit', value: 'Login'}),
+          ),
+  );
+}
+
+async function foo(loginfo: string[], setSetupComplete: (x: boolean) => void,
+                   setFilesContents: (x: string[][]) => void) {
+  if (!loginfo[0]) { return; }
+  await gitio.setup(loginfo[0]);
+  setSetupComplete(true);
+  let ls = (await gitio.ls()).filter(s => s.endsWith('.md'));
+  let contents = await Promise.all(ls.map(f => gitio.readFile(f)));
+  setFilesContents(ls.map((f, i) => [f, contents[i]]));
+}
+
+/*
+  <input type="checkbox" id="scales" name="scales"
+         checked>
+  <label for="scales">Scales</label>
+*/
+function flatten1(vov: any[][]): any[] { return vov.reduce((old, curr) => old.concat(curr), []); }
+function Fileslist(props: {ls: string[]}) {
+  console.log('ls', props.ls);
+  let flat = flatten1(props.ls.map(f => [ce('input', {type: 'checkbox', id: 'check-' + f, name: 'check-' + f}),
+                                         ce('label', {htmlFor: 'check-' + f})]));
+  return ce('div', null, ...flat);
+}
+
+function Git(props: any) {
+  const [loginfo, setLonginfo] = useState([] as string[]);
+  const [setupComplete, setSetupComplete] = useState(false);
+  const [filesContents, setFilesContents] = useState([] as string[][]);
+  console.log(loginfo, setupComplete, filesContents);
+  // useEffect(() => { foo(loginfo, setSetupComplete, setFilesContents); }); // FIXME causes infinite renders
+  return ce(
+      'div',
+      null,
+      ce(Login, {tellparent: (...v: string[]) => setLonginfo(v)}),
+      ce(Fileslist, {ls: filesContents.map(([f, _]) => f)}),
+      setupComplete ? ce('pre', null, JSON.stringify(filesContents, null, 1)) : '',
+  );
+}
+
 type IzumiState = {
   markdownFilenames: string[],
   markdownRead: boolean,
   contents: curtiz.markdown.Content[][],
   markdowns: string[],
+  git?: any,
 };
 class Izumi extends React.Component {
   constructor(props: any) {
@@ -201,13 +268,20 @@ class Izumi extends React.Component {
       markdowns: texts,
       markdownRead: true,
       contents: texts.map(text => parseFileContents(text)),
+      git: await gitio.test(),
     });
   }
   render() {
     if (!this.state.markdownRead) { return ce('h1', null, 'Not ready.'); }
-    return ce(IzumiSession, {contents: this.state.contents});
+    return ce(
+        'div',
+        null,
+        ce(IzumiSession, {contents: this.state.contents}),
+        ce('pre', null, JSON.stringify(this.state.git)),
+    );
   }
   state: IzumiState;
 }
 
-ReactDOM.render(ce(Izumi), document.getElementById('root'));
+ReactDOM.render(ce(Git), document.getElementById('root'));
+// ReactDOM.render(ce(Izumi), document.getElementById('root'));
