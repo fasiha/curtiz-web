@@ -103,7 +103,7 @@ export function* enumerate<T>(v: T[]|IterableIterator<T>, n: number = 0): Iterab
 }
 
 type Mode = 'quiz'|'learn';
-function IzumiSession(props: {filesOn: string[]}) {
+function IzumiSession(props: {filesOn: string[], user: string, token: string}) {
   let contents: curtiz.markdown.Content[][] = [];
   for (let f of props.filesOn) {
     let val = FILESCONTENTS.get(f);
@@ -138,7 +138,19 @@ function IzumiSession(props: {filesOn: string[]}) {
                                   !o.learned()) as (curtiz.markdown.LozengeBlock | undefined);
       if (toLearn) { break; }
     }
-    modeElement = ce(Learn, {fileIndex, toLearn, allDoneFunc: () => setQuestionNumber(questionNumber + 1)});
+    modeElement = ce(Learn, {
+      fileIndex,
+      toLearn,
+      allDoneFunc: async () => {
+        setQuestionNumber(questionNumber + 1);
+        let res =
+            await gitio.writeFileCommit(props.filesOn[fileIndex], curtiz.markdown.contentToString(contents[fileIndex]),
+                                        'Commit ' + (new Date()).toISOString());
+        console.log('commit res', res);
+        let err = await gitio.commit(props.user, props.token);
+        console.log('push err', err);
+      }
+    });
   }
   return ce('div', null, ce(ModeSelect, {
               tellparent: (newMode: Mode) => {
@@ -163,7 +175,7 @@ function Learn(props: {toLearn: curtiz.markdown.LozengeBlock|undefined, fileInde
               onSubmit: e => {
                 e.preventDefault();
                 let scale = parseFloat(input) || 1;
-                toLearn.learn(new Date(), scale)
+                toLearn.learn(new Date(), scale);
                 props.allDoneFunc();
                 setInput('1');
               }
@@ -264,7 +276,7 @@ function Git(props: any) {
         },
         ls: filesList
       }),
-      setupComplete ? ce(IzumiSession, {filesOn: filesOnList}) : '',
+      setupComplete ? ce(IzumiSession, {filesOn: filesOnList, user: loginfo[1], token: loginfo[2]}) : '',
   );
 }
 
