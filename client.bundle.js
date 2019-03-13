@@ -48,7 +48,7 @@ function Quiz(props) {
     const [answer, setAnswer] = react_1.useState('');
     const [finalSummaries, setFinalSummaries] = react_1.useState([]);
     const { contexts, clozes } = props.bestQuiz.finalQuiz.preQuiz();
-    return ce('div', null, ce('p', null, 'contexts: ' + JSON.stringify(contexts)), ce('p', null, 'clozes: ' + JSON.stringify(clozes)), ce('form', {
+    return ce('div', null, ce('p', null, contexts.map(o => o ? o : '___').join('')), ce('form', {
         onSubmit: (e) => {
             e.preventDefault();
             let now = new Date();

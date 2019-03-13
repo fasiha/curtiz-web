@@ -42,8 +42,7 @@ function Quiz(props: {allDoneFunc: () => void, bestQuiz: BestQuiz}) {
   return ce(
       'div',
       null,
-      ce('p', null, 'contexts: ' + JSON.stringify(contexts)),
-      ce('p', null, 'clozes: ' + JSON.stringify(clozes)),
+      ce('p', null, contexts.map(o => o ? o : '___').join('')),
       ce(
           'form',
           {
