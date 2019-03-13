@@ -24,15 +24,16 @@ const react_1 = __importStar(require("react"));
 const react_dom_1 = __importDefault(require("react-dom"));
 const gitio = __importStar(require("./gitio"));
 const ce = react_1.default.createElement;
-function getFile(filename) {
-    return __awaiter(this, void 0, void 0, function* () {
-        let fetched = yield fetch(filename);
-        if (!fetched.ok) {
-            throw new Error(`Error fetching ${filename}, ${fetched}`);
-        }
-        return fetched.text();
-    });
+function mapRight(v, mapper) {
+    const N = v.length;
+    return Array.from(Array(N), (_, i) => mapper(v[N - i - 1], N - i - 1, v));
 }
+function* enumerate(v, n = 0) {
+    for (let x of v) {
+        yield [n++, x];
+    }
+}
+function flatten1(vov) { return vov.reduce((old, curr) => old.concat(curr), []); }
 function parseFileContents(text) { return curtiz.markdown.textToBlocks(text); }
 function contentsToBestQuiz(contents, randomize) {
     const findBestQuiz = curtiz.markdown.findBestQuiz;
@@ -40,10 +41,7 @@ function contentsToBestQuiz(contents, randomize) {
     const bestQuizzes = contents.map(content => findBestQuiz(contentToLearned(content), randomize).finalQuizzable);
     return findBestQuiz(bestQuizzes, randomize);
 }
-function mapRight(v, mapper) {
-    const N = v.length;
-    return Array.from(Array(N), (_, i) => mapper(v[N - i - 1], N - i - 1, v));
-}
+let FILESCONTENTS = new Map();
 function Quiz(props) {
     const [answer, setAnswer] = react_1.useState('');
     const [finalSummaries, setFinalSummaries] = react_1.useState([]);
@@ -81,12 +79,6 @@ function ModeSelect(props) {
         onClick: e => props.tellparent('learn')
     }), ce('label', { htmlFor: 'modeLearn' }, 'Learn'));
 }
-function* enumerate(v, n = 0) {
-    for (let x of v) {
-        yield [n++, x];
-    }
-}
-exports.enumerate = enumerate;
 function IzumiSession(props) {
     let contents = [];
     for (let f of props.filesOn) {
@@ -204,7 +196,6 @@ function initializeGit(loginfo, setSetupComplete, setFilesList) {
         setSetupComplete(true);
     });
 }
-function flatten1(vov) { return vov.reduce((old, curr) => old.concat(curr), []); }
 function Fileslist(props) {
     let flat = flatten1(props.ls.map(f => [ce('input', {
             type: 'checkbox',
@@ -215,7 +206,6 @@ function Fileslist(props) {
         ce('label', { htmlFor: 'check-' + f }, f)]));
     return ce('div', null, ...flat);
 }
-let FILESCONTENTS = new Map();
 function Git(props) {
     const [loginfo, setLonginfo] = react_1.useState(["", "", ""]);
     const [setupComplete, setSetupComplete] = react_1.useState(false);

@@ -6,11 +6,15 @@ import * as gitio from './gitio';
 
 const ce = React.createElement;
 
-async function getFile(filename: string): Promise<string> {
-  let fetched = await fetch(filename);
-  if (!fetched.ok) { throw new Error(`Error fetching ${filename}, ${fetched}`); }
-  return fetched.text();
+function mapRight<T, U>(v: T[], mapper: (x: T, i?: number, v?: T[]) => U): U[] {
+  const N = v.length;
+  return Array.from(Array(N), (_, i) => mapper(v[N - i - 1], N - i - 1, v));
 }
+function* enumerate<T>(v: T[]|IterableIterator<T>, n: number = 0): IterableIterator<[number, T]> {
+  for (let x of v) { yield [n++, x]; }
+}
+function flatten1(vov: any[][]): any[] { return vov.reduce((old, curr) => old.concat(curr), []); }
+
 function parseFileContents(text: string) { return curtiz.markdown.textToBlocks(text); }
 function contentsToBestQuiz(contents: curtiz.markdown.Content[][], randomize: boolean) {
   const findBestQuiz = curtiz.markdown.findBestQuiz;
@@ -23,18 +27,15 @@ function contentsToBestQuiz(contents: curtiz.markdown.Content[][], randomize: bo
   return findBestQuiz(bestQuizzes, randomize);
 }
 
+type Mode = 'quiz'|'learn';
+type FilesContents = Map<string, {checked?: boolean, content: curtiz.markdown.Content[]}>;
+let FILESCONTENTS: FilesContents = new Map();
 type BestQuiz = {
   finalQuiz: curtiz.markdown.Quiz,
   finalQuizzable: curtiz.markdown.LozengeBlock,
   finalPrediction: curtiz.markdown.Predicted,
   finalIndex: number
 };
-
-function mapRight<T, U>(v: T[], mapper: (x: T, i?: number, v?: T[]) => U): U[] {
-  const N = v.length;
-  return Array.from(Array(N), (_, i) => mapper(v[N - i - 1], N - i - 1, v));
-}
-
 function Quiz(props: {allDoneFunc: () => void, bestQuiz: BestQuiz}) {
   const [answer, setAnswer] = useState('');
   const [finalSummaries, setFinalSummaries] = useState([] as string[]);
@@ -98,11 +99,7 @@ function ModeSelect(props: {tellparent: (mode: Mode) => void}) {
       ce('label', {htmlFor: 'modeLearn'}, 'Learn'),
   )
 }
-export function* enumerate<T>(v: T[]|IterableIterator<T>, n: number = 0): IterableIterator<[number, T]> {
-  for (let x of v) { yield [n++, x]; }
-}
 
-type Mode = 'quiz'|'learn';
 function IzumiSession(props: {filesOn: string[], user: string, token: string}) {
   let contents: curtiz.markdown.Content[][] = [];
   for (let f of props.filesOn) {
@@ -250,8 +247,6 @@ async function initializeGit(loginfo: string[], setSetupComplete: (x: boolean) =
   setSetupComplete(true);
 }
 
-function flatten1(vov: any[][]): any[] { return vov.reduce((old, curr) => old.concat(curr), []); }
-
 function Fileslist(props: {ls: string[], tellparent: (file: string, checked: boolean) => void}) {
   let flat = flatten1(props.ls.map(f => [ce('input', {
                                            type: 'checkbox',
@@ -262,9 +257,6 @@ function Fileslist(props: {ls: string[], tellparent: (file: string, checked: boo
                                          ce('label', {htmlFor: 'check-' + f}, f)]));
   return ce('div', null, ...flat);
 }
-
-type FilesContents = Map<string, {checked?: boolean, content: curtiz.markdown.Content[]}>;
-let FILESCONTENTS: FilesContents = new Map();
 
 function Git(props: any) {
   const [loginfo, setLonginfo] = useState(["", "", ""] as string[]);
