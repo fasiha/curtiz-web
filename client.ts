@@ -124,28 +124,36 @@ function IzumiSession(props: {filesOn: string[], user: string, token: string}) {
           'div',
           null,
           ce(Quiz, {
-            allDoneFunc: () => setQuestionNumber(questionNumber + 1),
+            allDoneFunc: async () => {
+              setQuestionNumber(questionNumber + 1);
+              let res = await gitio.writeFileCommit(props.filesOn[finalIndex],
+                                                    curtiz.markdown.contentToString(contents[finalIndex]),
+                                                    'Commit quiz, ' + (new Date()).toISOString());
+              console.log('commit res', res);
+              let err = await gitio.commit(props.user, props.token);
+              console.log('push err', err);
+            },
             bestQuiz: {finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex}
           }),
       );
     }
   } else {
-    let fileIndex: number = -1;
+    let finalIndex: number = -1;
     let toLearn: curtiz.markdown.LozengeBlock|undefined;
     for (const [idx, content] of enumerate(contents)) {
-      fileIndex = idx;
+      finalIndex = idx;
       toLearn = content.find(o => o instanceof curtiz.markdown.LozengeBlock &&
                                   !o.learned()) as (curtiz.markdown.LozengeBlock | undefined);
       if (toLearn) { break; }
     }
     modeElement = ce(Learn, {
-      fileIndex,
+      fileIndex: finalIndex,
       toLearn,
       allDoneFunc: async () => {
         setQuestionNumber(questionNumber + 1);
-        let res =
-            await gitio.writeFileCommit(props.filesOn[fileIndex], curtiz.markdown.contentToString(contents[fileIndex]),
-                                        'Commit ' + (new Date()).toISOString());
+        let res = await gitio.writeFileCommit(props.filesOn[finalIndex],
+                                              curtiz.markdown.contentToString(contents[finalIndex]),
+                                              'Commit learn, ' + (new Date()).toISOString());
         console.log('commit res', res);
         let err = await gitio.commit(props.user, props.token);
         console.log('push err', err);

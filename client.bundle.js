@@ -105,16 +105,22 @@ function IzumiSession(props) {
         }
         else {
             modeElement = ce('div', null, ce(Quiz, {
-                allDoneFunc: () => setQuestionNumber(questionNumber + 1),
+                allDoneFunc: () => __awaiter(this, void 0, void 0, function* () {
+                    setQuestionNumber(questionNumber + 1);
+                    let res = yield gitio.writeFileCommit(props.filesOn[finalIndex], curtiz.markdown.contentToString(contents[finalIndex]), 'Commit quiz, ' + (new Date()).toISOString());
+                    console.log('commit res', res);
+                    let err = yield gitio.commit(props.user, props.token);
+                    console.log('push err', err);
+                }),
                 bestQuiz: { finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex }
             }));
         }
     }
     else {
-        let fileIndex = -1;
+        let finalIndex = -1;
         let toLearn;
         for (const [idx, content] of enumerate(contents)) {
-            fileIndex = idx;
+            finalIndex = idx;
             toLearn = content.find(o => o instanceof curtiz.markdown.LozengeBlock &&
                 !o.learned());
             if (toLearn) {
@@ -122,11 +128,11 @@ function IzumiSession(props) {
             }
         }
         modeElement = ce(Learn, {
-            fileIndex,
+            fileIndex: finalIndex,
             toLearn,
             allDoneFunc: () => __awaiter(this, void 0, void 0, function* () {
                 setQuestionNumber(questionNumber + 1);
-                let res = yield gitio.writeFileCommit(props.filesOn[fileIndex], curtiz.markdown.contentToString(contents[fileIndex]), 'Commit ' + (new Date()).toISOString());
+                let res = yield gitio.writeFileCommit(props.filesOn[finalIndex], curtiz.markdown.contentToString(contents[finalIndex]), 'Commit learn, ' + (new Date()).toISOString());
                 console.log('commit res', res);
                 let err = yield gitio.commit(props.user, props.token);
                 console.log('push err', err);
