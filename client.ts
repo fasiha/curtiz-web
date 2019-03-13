@@ -85,6 +85,7 @@ function ModeSelect(props: {tellparent: (mode: Mode) => void}) {
         id: 'modeQuiz',
         name: 'quizSelect',
         value: 'modeQuiz',
+        defaultChecked: true,
         onClick: e => props.tellparent('quiz')
       }),
       ce('label', {htmlFor: 'modeQuiz'}, 'Quiz'),
@@ -113,52 +114,56 @@ function IzumiSession(props: {filesOn: string[], user: string, token: string}) {
   const [mode, setMode] = useState('quiz' as Mode);
 
   let modeElement;
-  if (mode === 'quiz') {
-    const {finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex} =
-        contentsToBestQuiz(contents, false);
-    // console.log(finalQuiz, finalLozengeBlock, finalPrediction, finalIndex)
-    if (!(finalQuiz && finalLozengeBlock && finalPrediction && typeof finalIndex === 'number')) {
-      modeElement = ce('h1', null, 'No quizzes found. Learn something!');
+  if (props.filesOn.length > 0) {
+    if (mode === 'quiz') {
+      const {finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex} =
+          contentsToBestQuiz(contents, false);
+      // console.log(finalQuiz, finalLozengeBlock, finalPrediction, finalIndex)
+      if (!(finalQuiz && finalLozengeBlock && finalPrediction && typeof finalIndex === 'number')) {
+        modeElement = ce('h1', null, 'No quizzes found. Learn something!');
+      } else {
+        modeElement = ce(
+            'div',
+            null,
+            ce(Quiz, {
+              allDoneFunc: async () => {
+                setQuestionNumber(questionNumber + 1);
+                let res = await gitio.writeFileCommit(props.filesOn[finalIndex],
+                                                      curtiz.markdown.contentToString(contents[finalIndex]),
+                                                      'Commit quiz, ' + (new Date()).toISOString());
+                console.log('commit res', res);
+                let err = await gitio.commit(props.user, props.token);
+                console.log('push err', err);
+              },
+              bestQuiz: {finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex}
+            }),
+        );
+      }
     } else {
-      modeElement = ce(
-          'div',
-          null,
-          ce(Quiz, {
-            allDoneFunc: async () => {
-              setQuestionNumber(questionNumber + 1);
-              let res = await gitio.writeFileCommit(props.filesOn[finalIndex],
-                                                    curtiz.markdown.contentToString(contents[finalIndex]),
-                                                    'Commit quiz, ' + (new Date()).toISOString());
-              console.log('commit res', res);
-              let err = await gitio.commit(props.user, props.token);
-              console.log('push err', err);
-            },
-            bestQuiz: {finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex}
-          }),
-      );
+      let finalIndex: number = -1;
+      let toLearn: curtiz.markdown.LozengeBlock|undefined;
+      for (const [idx, content] of enumerate(contents)) {
+        finalIndex = idx;
+        toLearn = content.find(o => o instanceof curtiz.markdown.LozengeBlock &&
+                                    !o.learned()) as (curtiz.markdown.LozengeBlock | undefined);
+        if (toLearn) { break; }
+      }
+      modeElement = ce(Learn, {
+        fileIndex: finalIndex,
+        toLearn,
+        allDoneFunc: async () => {
+          setQuestionNumber(questionNumber + 1);
+          let res = await gitio.writeFileCommit(props.filesOn[finalIndex],
+                                                curtiz.markdown.contentToString(contents[finalIndex]),
+                                                'Commit learn, ' + (new Date()).toISOString());
+          console.log('commit res', res);
+          let err = await gitio.commit(props.user, props.token);
+          console.log('push err', err);
+        }
+      });
     }
   } else {
-    let finalIndex: number = -1;
-    let toLearn: curtiz.markdown.LozengeBlock|undefined;
-    for (const [idx, content] of enumerate(contents)) {
-      finalIndex = idx;
-      toLearn = content.find(o => o instanceof curtiz.markdown.LozengeBlock &&
-                                  !o.learned()) as (curtiz.markdown.LozengeBlock | undefined);
-      if (toLearn) { break; }
-    }
-    modeElement = ce(Learn, {
-      fileIndex: finalIndex,
-      toLearn,
-      allDoneFunc: async () => {
-        setQuestionNumber(questionNumber + 1);
-        let res = await gitio.writeFileCommit(props.filesOn[finalIndex],
-                                              curtiz.markdown.contentToString(contents[finalIndex]),
-                                              'Commit learn, ' + (new Date()).toISOString());
-        console.log('commit res', res);
-        let err = await gitio.commit(props.user, props.token);
-        console.log('push err', err);
-      }
-    });
+    modeElement = ce('h1', null, 'Select one or more files!');
   }
   return ce('div', null, ce(ModeSelect, {
               tellparent: (newMode: Mode) => {
@@ -200,7 +205,6 @@ function Learn(props: {toLearn: curtiz.markdown.LozengeBlock|undefined, fileInde
   } else {
     return ce('h1', null, 'Error! Unknown type to learn.');
   }
-  // writer(texts[fileIndex], contentToString(contents[fileIndex]), filenames[fileIndex], modifiedTimes[fileIndex]);
 }
 
 function Login(props: {tellparent: (a: string, b: string, c: string) => void}) {
