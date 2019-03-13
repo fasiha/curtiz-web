@@ -87,11 +87,18 @@ function* enumerate(v, n = 0) {
 }
 exports.enumerate = enumerate;
 function IzumiSession(props) {
+    let contents = [];
+    for (let f of props.filesOn) {
+        let val = FILESCONTENTS.get(f);
+        if (val) {
+            contents.push(val.content);
+        }
+    }
     const [questionNumber, setQuestionNumber] = react_1.useState(0);
     const [mode, setMode] = react_1.useState('quiz');
     let modeElement;
     if (mode === 'quiz') {
-        const { finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex } = contentsToBestQuiz(props.contents, false);
+        const { finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex } = contentsToBestQuiz(contents, false);
         // console.log(finalQuiz, finalLozengeBlock, finalPrediction, finalIndex)
         if (!(finalQuiz && finalLozengeBlock && finalPrediction && typeof finalIndex === 'number')) {
             modeElement = ce('h1', null, 'No quizzes found. Learn something!');
@@ -106,7 +113,7 @@ function IzumiSession(props) {
     else {
         let fileIndex = -1;
         let toLearn;
-        for (const [idx, content] of enumerate(props.contents)) {
+        for (const [idx, content] of enumerate(contents)) {
             fileIndex = idx;
             toLearn = content.find(o => o instanceof curtiz.markdown.LozengeBlock &&
                 !o.learned());
@@ -157,70 +164,58 @@ function Login(props) {
         }
     }, ce('label', null, 'URL: ', ce('input', { type: 'text', value: url, onChange: e => setURL(e.target.value) })), ce('label', null, 'Username: ', ce('input', { type: 'text', value: username, onChange: e => setUsername(e.target.value) })), ce('label', null, 'token: ', ce('input', { type: 'password', value: token, onChange: e => setToken(e.target.value) })), ce('input', { type: 'submit', value: 'Login' })));
 }
-function foo(loginfo, setSetupComplete, setFilesContents) {
+function initializeGit(loginfo, setSetupComplete, setFilesList) {
     return __awaiter(this, void 0, void 0, function* () {
         if (!loginfo[0]) {
             return;
         }
+        console.log('RUNNING SETUP');
         yield gitio.setup(loginfo[0]);
-        setSetupComplete(true);
         let ls = (yield gitio.ls()).filter(s => s.endsWith('.md'));
         let contents = yield Promise.all(ls.map(f => gitio.readFile(f)));
-        setFilesContents(ls.map((f, i) => [f, contents[i]]));
+        let map = new Map();
+        ls.forEach((f, i) => map.set(f, { content: parseFileContents(contents[i]) }));
+        FILESCONTENTS = map;
+        setFilesList(ls);
+        setSetupComplete(true);
     });
 }
-/*
-  <input type="checkbox" id="scales" name="scales"
-         checked>
-  <label for="scales">Scales</label>
-*/
 function flatten1(vov) { return vov.reduce((old, curr) => old.concat(curr), []); }
 function Fileslist(props) {
-    console.log('ls', props.ls);
-    let flat = flatten1(props.ls.map(f => [ce('input', { type: 'checkbox', id: 'check-' + f, name: 'check-' + f }),
-        ce('label', { htmlFor: 'check-' + f })]));
+    let flat = flatten1(props.ls.map(f => [ce('input', {
+            type: 'checkbox',
+            id: 'check-' + f,
+            name: 'check-' + f,
+            onClick: e => { props.tellparent(f, e.target.checked); }
+        }),
+        ce('label', { htmlFor: 'check-' + f }, f)]));
     return ce('div', null, ...flat);
 }
+let FILESCONTENTS = new Map();
 function Git(props) {
-    const [loginfo, setLonginfo] = react_1.useState([]);
+    const [loginfo, setLonginfo] = react_1.useState(["", "", ""]);
     const [setupComplete, setSetupComplete] = react_1.useState(false);
-    const [filesContents, setFilesContents] = react_1.useState([]);
-    console.log(loginfo, setupComplete, filesContents);
-    // useEffect(() => { foo(loginfo, setSetupComplete, setFilesContents); }); // FIXME causes infinite renders
-    return ce('div', null, ce(Login, { tellparent: (...v) => setLonginfo(v) }), ce(Fileslist, { ls: filesContents.map(([f, _]) => f) }), setupComplete ? ce('pre', null, JSON.stringify(filesContents, null, 1)) : '');
-}
-class Izumi extends react_1.default.Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            markdownFilenames: [
-                '/markdowns/test.md',
-            ],
-            markdownRead: false,
-            contents: [],
-            markdowns: [],
-        };
-    }
-    componentDidMount() {
-        return __awaiter(this, void 0, void 0, function* () {
-            let texts = yield Promise.all(this.state.markdownFilenames.map(filename => getFile(filename)));
-            this.setState({
-                markdowns: texts,
-                markdownRead: true,
-                contents: texts.map(text => parseFileContents(text)),
-                git: yield gitio.test(),
-            });
-        });
-    }
-    render() {
-        if (!this.state.markdownRead) {
-            return ce('h1', null, 'Not ready.');
-        }
-        return ce('div', null, ce(IzumiSession, { contents: this.state.contents }), ce('pre', null, JSON.stringify(this.state.git)));
-    }
+    const [filesList, setFilesList] = react_1.useState([]);
+    const [filesOnList, setFilesOnList] = react_1.useState([]);
+    // console.log(loginfo, setupComplete, filesContents);
+    react_1.useEffect(() => { initializeGit(loginfo, setSetupComplete, setFilesList); }, [...loginfo]);
+    return ce('div', null, ce(Login, { tellparent: (...v) => { setLonginfo(v); } }), ce(Fileslist, {
+        tellparent: (file, checked) => {
+            let val = FILESCONTENTS.get(file);
+            if (val) {
+                val.checked = checked;
+            }
+            setFilesOnList([...FILESCONTENTS.keys()]
+                .filter(key => {
+                let v = FILESCONTENTS.get(key);
+                return v && v.checked;
+            })
+                .sort());
+        },
+        ls: filesList
+    }), setupComplete ? ce(IzumiSession, { filesOn: filesOnList }) : '');
 }
 react_dom_1.default.render(ce(Git), document.getElementById('root'));
-// ReactDOM.render(ce(Izumi), document.getElementById('root'));
 
 },{"./gitio":2,"curtiz":137,"react":98,"react-dom":95}],2:[function(require,module,exports){
 "use strict";

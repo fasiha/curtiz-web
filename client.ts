@@ -103,14 +103,19 @@ export function* enumerate<T>(v: T[]|IterableIterator<T>, n: number = 0): Iterab
 }
 
 type Mode = 'quiz'|'learn';
-function IzumiSession(props: {contents: curtiz.markdown.Content[][]}) {
+function IzumiSession(props: {filesOn: string[]}) {
+  let contents: curtiz.markdown.Content[][] = [];
+  for (let f of props.filesOn) {
+    let val = FILESCONTENTS.get(f);
+    if (val) { contents.push(val.content); }
+  }
   const [questionNumber, setQuestionNumber] = useState(0);
   const [mode, setMode] = useState('quiz' as Mode);
 
   let modeElement;
   if (mode === 'quiz') {
     const {finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex} =
-        contentsToBestQuiz(props.contents, false);
+        contentsToBestQuiz(contents, false);
     // console.log(finalQuiz, finalLozengeBlock, finalPrediction, finalIndex)
     if (!(finalQuiz && finalLozengeBlock && finalPrediction && typeof finalIndex === 'number')) {
       modeElement = ce('h1', null, 'No quizzes found. Learn something!');
@@ -127,7 +132,7 @@ function IzumiSession(props: {contents: curtiz.markdown.Content[][]}) {
   } else {
     let fileIndex: number = -1;
     let toLearn: curtiz.markdown.LozengeBlock|undefined;
-    for (const [idx, content] of enumerate(props.contents)) {
+    for (const [idx, content] of enumerate(contents)) {
       fileIndex = idx;
       toLearn = content.find(o => o instanceof curtiz.markdown.LozengeBlock &&
                                   !o.learned()) as (curtiz.markdown.LozengeBlock | undefined);
@@ -203,85 +208,64 @@ function Login(props: {tellparent: (a: string, b: string, c: string) => void}) {
   );
 }
 
-async function foo(loginfo: string[], setSetupComplete: (x: boolean) => void,
-                   setFilesContents: (x: string[][]) => void) {
+async function initializeGit(loginfo: string[], setSetupComplete: (x: boolean) => void,
+                             setFilesList: (x: string[]) => void) {
   if (!loginfo[0]) { return; }
+  console.log('RUNNING SETUP');
   await gitio.setup(loginfo[0]);
-  setSetupComplete(true);
   let ls = (await gitio.ls()).filter(s => s.endsWith('.md'));
   let contents = await Promise.all(ls.map(f => gitio.readFile(f)));
-  setFilesContents(ls.map((f, i) => [f, contents[i]]));
+
+  let map: FilesContents = new Map();
+  ls.forEach((f, i) => map.set(f, {content: parseFileContents(contents[i])}));
+  FILESCONTENTS = map;
+
+  setFilesList(ls);
+  setSetupComplete(true);
 }
 
-/*
-  <input type="checkbox" id="scales" name="scales"
-         checked>
-  <label for="scales">Scales</label>
-*/
 function flatten1(vov: any[][]): any[] { return vov.reduce((old, curr) => old.concat(curr), []); }
-function Fileslist(props: {ls: string[]}) {
-  console.log('ls', props.ls);
-  let flat = flatten1(props.ls.map(f => [ce('input', {type: 'checkbox', id: 'check-' + f, name: 'check-' + f}),
-                                         ce('label', {htmlFor: 'check-' + f})]));
+
+function Fileslist(props: {ls: string[], tellparent: (file: string, checked: boolean) => void}) {
+  let flat = flatten1(props.ls.map(f => [ce('input', {
+                                           type: 'checkbox',
+                                           id: 'check-' + f,
+                                           name: 'check-' + f,
+                                           onClick: e => { props.tellparent(f, (e.target as any).checked) }
+                                         }),
+                                         ce('label', {htmlFor: 'check-' + f}, f)]));
   return ce('div', null, ...flat);
 }
 
+type FilesContents = Map<string, {checked?: boolean, content: curtiz.markdown.Content[]}>;
+let FILESCONTENTS: FilesContents = new Map();
+
 function Git(props: any) {
-  const [loginfo, setLonginfo] = useState([] as string[]);
+  const [loginfo, setLonginfo] = useState(["", "", ""] as string[]);
   const [setupComplete, setSetupComplete] = useState(false);
-  const [filesContents, setFilesContents] = useState([] as string[][]);
-  console.log(loginfo, setupComplete, filesContents);
-  // useEffect(() => { foo(loginfo, setSetupComplete, setFilesContents); }); // FIXME causes infinite renders
+  const [filesList, setFilesList] = useState([] as string[]);
+  const [filesOnList, setFilesOnList] = useState([] as string[]);
+  // console.log(loginfo, setupComplete, filesContents);
+  useEffect(() => { initializeGit(loginfo, setSetupComplete, setFilesList); }, [...loginfo]);
   return ce(
       'div',
       null,
-      ce(Login, {tellparent: (...v: string[]) => setLonginfo(v)}),
-      ce(Fileslist, {ls: filesContents.map(([f, _]) => f)}),
-      setupComplete ? ce('pre', null, JSON.stringify(filesContents, null, 1)) : '',
+      ce(Login, {tellparent: (...v: string[]) => { setLonginfo(v); }}),
+      ce(Fileslist, {
+        tellparent: (file: string, checked: boolean) => {
+          let val = FILESCONTENTS.get(file);
+          if (val) { val.checked = checked; }
+          setFilesOnList([...FILESCONTENTS.keys()]
+                             .filter(key => {
+                               let v = FILESCONTENTS.get(key);
+                               return v && v.checked;
+                             })
+                             .sort());
+        },
+        ls: filesList
+      }),
+      setupComplete ? ce(IzumiSession, {filesOn: filesOnList}) : '',
   );
 }
 
-type IzumiState = {
-  markdownFilenames: string[],
-  markdownRead: boolean,
-  contents: curtiz.markdown.Content[][],
-  markdowns: string[],
-  git?: any,
-};
-class Izumi extends React.Component {
-  constructor(props: any) {
-    super(props);
-    this.state = {
-      markdownFilenames: [
-        '/markdowns/test.md',
-        // '/markdowns/HJ.md',
-        // '/markdowns/grade1.md',
-      ],
-      markdownRead: false,
-      contents: [],
-      markdowns: [],
-    };
-  }
-  async componentDidMount() {
-    let texts = await Promise.all(this.state.markdownFilenames.map(filename => getFile(filename)));
-    this.setState({
-      markdowns: texts,
-      markdownRead: true,
-      contents: texts.map(text => parseFileContents(text)),
-      git: await gitio.test(),
-    });
-  }
-  render() {
-    if (!this.state.markdownRead) { return ce('h1', null, 'Not ready.'); }
-    return ce(
-        'div',
-        null,
-        ce(IzumiSession, {contents: this.state.contents}),
-        ce('pre', null, JSON.stringify(this.state.git)),
-    );
-  }
-  state: IzumiState;
-}
-
 ReactDOM.render(ce(Git), document.getElementById('root'));
-// ReactDOM.render(ce(Izumi), document.getElementById('root'));
