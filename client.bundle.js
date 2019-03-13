@@ -101,7 +101,6 @@ function IzumiSession(props) {
     if (props.filesOn.length > 0) {
         if (mode === 'quiz') {
             const { finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex } = contentsToBestQuiz(contents, false);
-            // console.log(finalQuiz, finalLozengeBlock, finalPrediction, finalIndex)
             if (!(finalQuiz && finalLozengeBlock && finalPrediction && typeof finalIndex === 'number')) {
                 modeElement = ce('h1', null, 'No quizzes found. Learn something!');
             }
@@ -111,8 +110,10 @@ function IzumiSession(props) {
                         setQuestionNumber(questionNumber + 1);
                         let res = yield gitio.writeFileCommit(props.filesOn[finalIndex], curtiz.markdown.contentToString(contents[finalIndex]), 'Commit quiz, ' + (new Date()).toISOString());
                         console.log('commit res', res);
-                        let err = yield gitio.commit(props.user, props.token);
-                        console.log('push err', err);
+                        if (props.user && props.token) {
+                            let err = yield gitio.commit(props.user, props.token);
+                            console.log('push err', err);
+                        }
                     }),
                     bestQuiz: { finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex }
                 }));
@@ -136,8 +137,10 @@ function IzumiSession(props) {
                     setQuestionNumber(questionNumber + 1);
                     let res = yield gitio.writeFileCommit(props.filesOn[finalIndex], curtiz.markdown.contentToString(contents[finalIndex]), 'Commit learn, ' + (new Date()).toISOString());
                     console.log('commit res', res);
-                    let err = yield gitio.commit(props.user, props.token);
-                    console.log('push err', err);
+                    if (props.user && props.token) {
+                        let err = yield gitio.commit(props.user, props.token);
+                        console.log('push err', err);
+                    }
                 })
             });
         }
