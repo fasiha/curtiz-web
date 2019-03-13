@@ -1,1 +1,1 @@
-client/*.bundle.js linguist-vendored
+*.bundle.js linguist-vendored
