@@ -21,8 +21,9 @@ function contentsToBestQuiz(contents: curtiz.markdown.Content[][], randomize: bo
   const contentToLearned: (content: curtiz.markdown.Content[]) => curtiz.markdown.LozengeBlock[] = content =>
       content.filter(o => o instanceof curtiz.markdown.LozengeBlock && o.learned()) as curtiz.markdown.LozengeBlock[];
 
-  const bestQuizzes = contents.map(content => findBestQuiz(contentToLearned(content), randomize).finalQuizzable) as
-                      curtiz.markdown.LozengeBlock[];
+  const bestQuizzes =
+      contents.map(content => findBestQuiz(contentToLearned(content), randomize).finalQuizzable).filter(x => !!x) as
+      curtiz.markdown.LozengeBlock[];
 
   return findBestQuiz(bestQuizzes, randomize);
 }
