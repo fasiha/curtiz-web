@@ -14,6 +14,7 @@ export async function setup(url: string) {
   pfs = pify(fs);
   git.plugins.set('fs', fs);
   await pfs.mkdir(dir);
+  if (!url) { return git.init({dir}); }
   return git.clone({dir, corsProxy: CORSPROXY, url, ref: 'master', singleBranch: true, depth: 1});
 }
 

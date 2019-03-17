@@ -38,30 +38,55 @@ function parseFileContents(text) { return curtiz.markdown.textToBlocks(text); }
 function contentsToBestQuiz(contents, randomize) {
     const findBestQuiz = curtiz.markdown.findBestQuiz;
     const contentToLearned = content => content.filter(o => o instanceof curtiz.markdown.LozengeBlock && o.learned());
-    const bestQuizzes = contents.map(content => findBestQuiz(contentToLearned(content), randomize).finalQuizzable);
+    const bestQuizzes = contents.map(content => findBestQuiz(contentToLearned(content), randomize).finalQuizzable).filter(x => !!x);
     return findBestQuiz(bestQuizzes, randomize);
 }
 let FILESCONTENTS = new Map();
 function Quiz(props) {
     const [answer, setAnswer] = react_1.useState('');
     const [finalSummaries, setFinalSummaries] = react_1.useState([]);
+    const [quizToFinishLearning, setQuizToFinishLearning] = react_1.useState(false);
     const { contexts, clozes } = props.bestQuiz.finalQuiz.preQuiz();
-    return ce('div', null, ce('p', null, contexts.map(o => o ? o : '___').join('')), ce('form', {
-        onSubmit: (e) => {
-            e.preventDefault();
-            let now = new Date();
-            let scale = 1;
-            let correct = props.bestQuiz.finalQuizzable.postQuiz(props.bestQuiz.finalQuiz, clozes, [answer], now, scale);
-            let summary = props.bestQuiz.finalQuizzable.header;
-            const init = curtiz.markdown.SentenceBlock.init;
-            summary = summary.slice(summary.indexOf(init) + init.length);
-            const finalSummary = correct ? ('💥 🔥 🎆 🎇 👏 🙌 👍 👌! ' + summary)
-                : (`😭 🙅‍♀️ 🙅‍♂️ 👎 🤬. ${answer} ∉ 【${clozes.join(', ')}】 for ${summary}`);
-            setFinalSummaries(finalSummaries.concat(finalSummary));
-            props.allDoneFunc();
-            setAnswer('');
-        }
-    }, ce('label', null, 'Answer:', ce('input', { type: 'text', value: answer, onChange: e => setAnswer(e.target.value) })), ce('input', { type: 'submit', value: 'Submit' })), ce('ul', null, ...mapRight(finalSummaries, s => ce('li', null, s))));
+    const update = () => {
+        let now = new Date();
+        let scale = 1;
+        // if you learned sub-facts, they'll be "learned" with the scale from
+        // Learn React module, and then the following will immediately update it FIXME
+        let correct = props.bestQuiz.finalQuizzable.postQuiz(props.bestQuiz.finalQuiz, clozes, [answer], now, scale);
+        let summary = props.bestQuiz.finalQuizzable.header;
+        const init = curtiz.markdown.SentenceBlock.init;
+        summary = summary.slice(summary.indexOf(init) + init.length);
+        const finalSummary = correct
+            ? ('💥 🔥 🎆 🎇 👏 🙌 👍 👌! ' + summary)
+            : (`😭 🙅‍♀️ 🙅‍♂️ 👎 🤬. ${answer} ∉ 「${clozes.join(', ')}」 for ${summary}`);
+        setFinalSummaries(finalSummaries.concat(finalSummary));
+        props.allDoneFunc();
+        setAnswer('');
+        setQuizToFinishLearning(false);
+    };
+    let element;
+    if (quizToFinishLearning) {
+        element = ce('div', {}, ce(Learn, {
+            partialLearn: true,
+            toLearn: props.bestQuiz.finalQuizzable,
+            fileIndex: props.bestQuiz.finalIndex,
+            allDoneFunc: () => { update(); }
+        }));
+    }
+    else {
+        element = ce('div', null, ce('h1', null, 'Quiz time!'), ce('p', null, contexts.map(o => o ? o : '___').join('')), ce('form', {
+            onSubmit: (e) => {
+                e.preventDefault();
+                if (props.bestQuiz.finalPrediction && props.bestQuiz.finalPrediction.unlearned > 0) {
+                    setQuizToFinishLearning(true);
+                }
+                else {
+                    update();
+                }
+            }
+        }, ce('label', null, 'Answer:', ce('input', { type: 'text', value: answer, onChange: e => setAnswer(e.target.value) })), ce('input', { type: 'submit', value: 'Submit' })));
+    }
+    return ce('div', null, element, ce('ul', null, ...mapRight(finalSummaries, s => ce('li', null, s))));
 }
 function ModeSelect(props) {
     return ce('div', null, ce('input', {
@@ -123,6 +148,7 @@ function IzumiSession(props) {
                 }
             }
             modeElement = ce(Learn, {
+                partialLearn: false,
                 fileIndex: finalIndex,
                 toLearn,
                 allDoneFunc: () => __awaiter(this, void 0, void 0, function* () {
@@ -155,7 +181,11 @@ function Learn(props) {
         return ce('h1', null, 'Nothing to learn!');
     }
     if (toLearn instanceof curtiz.markdown.SentenceBlock) {
-        return ce('div', null, ce('p', null, `Learn this: ${toLearn.sentence}, ${toLearn.reading}, ${toLearn.translation}`), ce('form', {
+        let subbullets = toLearn.bullets.filter(b => b instanceof curtiz.markdown.Quiz && !b.ebisu)
+            .map(q => q.toString())
+            .filter(x => !!x);
+        let subbulletsList = ce('ul', null, ...subbullets.map(text => ce('li', null, text)));
+        return ce('div', null, ce('h1', null, props.partialLearn ? 'Oh! New bullets!' : 'Learning time!'), ce('h2', null, `${toLearn.sentence}, ${toLearn.reading}, ${toLearn.translation}`), subbulletsList, ce('form', {
             onSubmit: e => {
                 e.preventDefault();
                 let scale = parseFloat(input) || 1;
@@ -182,11 +212,39 @@ function Login(props) {
 }
 function initializeGit(loginfo, setSetupComplete, setFilesList) {
     return __awaiter(this, void 0, void 0, function* () {
-        if (!loginfo[0]) {
-            return;
-        }
+        let offline = !loginfo[0];
         console.log('RUNNING SETUP');
         yield gitio.setup(loginfo[0]);
+        if (offline) {
+            let filename = 'test.md';
+            let content = `
+# Human Japanese
+Vocabulary from Human Japanese app (on iOS).
+
+## Time
+#### ◊sent きょう :: today :: 今日
+- ◊related hi :: ?? :: hi
+#### ◊sent きのう :: yesterday :: 昨日
+- ◊related hi2 :: ?? :: hi2
+- ◊Ebisu1 reading 2019-02-21T01:25:10.998Z, 1.249e+0,8.081e+0,1.394e+3
+#### ◊sent あした :: tomorrow :: 明日
+- ◊related hi3 :: ?? :: hi3
+- ◊Ebisu1 reading 2019-03-13T05:33:19.221Z, 2.843e-1,9.772e+0,1.876e+3
+#### ◊sent おととい :: day before yesterday :: 一昨日
+- ◊related hi4 :: ?? :: hi4
+- ◊Ebisu1 reading 2019-03-13T05:28:28.572Z, 3.000e+0,3.000e+0,2.500e-1
+#### ◊sent あさって :: day after tomorrow :: 明後日
+- ◊related hi5 :: ?? :: hi5
+- ◊Ebisu1 reading 2019-03-13T05:28:33.931Z, 3.000e+0,3.000e+0,2.500e+0
+
+後・あと *after, behind, more left* is very common grade 2 kanji.
+  `;
+            gitio.writeFileCommit(filename, content, 'init');
+            FILESCONTENTS = new Map([[filename, { checked: true, content: parseFileContents(content) }]]);
+            setFilesList([filename]);
+            setSetupComplete(true);
+            return;
+        }
         let ls = (yield gitio.ls()).filter(s => s.endsWith('.md'));
         let contents = yield Promise.all(ls.map(f => gitio.readFile(f)));
         let map = new Map();
@@ -259,6 +317,9 @@ function setup(url) {
         pfs = pify_1.default(fs);
         git.plugins.set('fs', fs);
         yield pfs.mkdir(dir);
+        if (!url) {
+            return git.init({ dir });
+        }
         return git.clone({ dir, corsProxy: CORSPROXY, url, ref: 'master', singleBranch: true, depth: 1 });
     });
 }
