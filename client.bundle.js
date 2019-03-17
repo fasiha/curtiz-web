@@ -64,17 +64,14 @@ function Quiz(props) {
         setAnswer('');
         setQuizToFinishLearning(false);
     };
-    let element;
-    if (quizToFinishLearning) {
-        element = ce('div', {}, ce(Learn, {
+    let element = ce('div', null, ce('h1', null, 'Quiz time!'), ce('p', null, contexts.map(o => o ? o : '___').join('')), quizToFinishLearning
+        ? ce(Learn, {
             partialLearn: true,
             toLearn: props.bestQuiz.finalQuizzable,
             fileIndex: props.bestQuiz.finalIndex,
             allDoneFunc: () => { update(); }
-        }));
-    }
-    else {
-        element = ce('div', null, ce('h1', null, 'Quiz time!'), ce('p', null, contexts.map(o => o ? o : '___').join('')), ce('form', {
+        })
+        : ce('form', {
             onSubmit: (e) => {
                 e.preventDefault();
                 if (props.bestQuiz.finalPrediction && props.bestQuiz.finalPrediction.unlearned > 0) {
@@ -85,7 +82,6 @@ function Quiz(props) {
                 }
             }
         }, ce('label', null, 'Answer:', ce('input', { type: 'text', value: answer, onChange: e => setAnswer(e.target.value) })), ce('input', { type: 'submit', value: 'Submit' })));
-    }
     return ce('div', null, element, ce('ul', null, ...mapRight(finalSummaries, s => ce('li', null, s))));
 }
 function ModeSelect(props) {

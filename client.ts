@@ -62,42 +62,39 @@ function Quiz(props: {allDoneFunc: () => void, bestQuiz: BestQuiz}) {
     setQuizToFinishLearning(false);
   };
 
-  let element;
-  if (quizToFinishLearning) {
-    element = ce('div', {}, ce(Learn, {
-                   partialLearn: true,
-                   toLearn: props.bestQuiz.finalQuizzable,
-                   fileIndex: props.bestQuiz.finalIndex,
-                   allDoneFunc: () => { update(); }
-                 }));
-  } else {
-    element = ce(
-        'div',
-        null,
-        ce('h1', null, 'Quiz time!'),
-        ce('p', null, contexts.map(o => o ? o : '___').join('')),
-        ce(
-            'form',
-            {
-              onSubmit: (e) => {
-                e.preventDefault();
-                if (props.bestQuiz.finalPrediction && props.bestQuiz.finalPrediction.unlearned > 0) {
-                  setQuizToFinishLearning(true);
-                } else {
-                  update();
-                }
-              }
-            },
-            ce(
-                'label',
-                null,
-                'Answer:',
-                ce('input', {type: 'text', value: answer, onChange: e => setAnswer(e.target.value)}),
+  let element = ce(
+      'div',
+      null,
+      ce('h1', null, 'Quiz time!'),
+      ce('p', null, contexts.map(o => o ? o : '___').join('')),
+      quizToFinishLearning
+          ? ce(Learn, {
+              partialLearn: true,
+              toLearn: props.bestQuiz.finalQuizzable,
+              fileIndex: props.bestQuiz.finalIndex,
+              allDoneFunc: () => { update(); }
+            })
+          : ce(
+                'form',
+                {
+                  onSubmit: (e) => {
+                    e.preventDefault();
+                    if (props.bestQuiz.finalPrediction && props.bestQuiz.finalPrediction.unlearned > 0) {
+                      setQuizToFinishLearning(true);
+                    } else {
+                      update();
+                    }
+                  }
+                },
+                ce(
+                    'label',
+                    null,
+                    'Answer:',
+                    ce('input', {type: 'text', value: answer, onChange: e => setAnswer(e.target.value)}),
+                    ),
+                ce('input', {type: 'submit', value: 'Submit'}),
                 ),
-            ce('input', {type: 'submit', value: 'Submit'}),
-            ),
-    );
-  }
+  );
 
   return ce('div', null, element, ce('ul', null, ...mapRight(finalSummaries, s => ce('li', null, s))));
 }
