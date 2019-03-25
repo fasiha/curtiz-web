@@ -283,7 +283,8 @@ function Git(props) {
         ls: filesList
     }), setupComplete ? ce(IzumiSession, { filesOn: filesOnList, user: loginfo[1], token: loginfo[2] }) : '');
 }
-react_dom_1.default.render(ce(Git), document.getElementById('root'));
+function About() { return ce('div', null, ce('a', { href: 'https://github.com/fasiha/curtiz-web#readme' }, 'About')); }
+react_dom_1.default.render(ce('div', null, ce(Git), ce(About)), document.getElementById('root'));
 
 },{"./gitio":2,"curtiz":142,"react":216,"react-dom":213}],2:[function(require,module,exports){
 "use strict";

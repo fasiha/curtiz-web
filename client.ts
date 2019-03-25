@@ -353,4 +353,5 @@ function Git(props: {}) {
       setupComplete ? ce(IzumiSession, {filesOn: filesOnList, user: loginfo[1], token: loginfo[2]}) : '',
   );
 }
-ReactDOM.render(ce(Git), document.getElementById('root'));
+function About() { return ce('div', null, ce('a', {href: 'https://github.com/fasiha/curtiz-web#readme'}, 'About')); }
+ReactDOM.render(ce('div', null, ce(Git), ce(About)), document.getElementById('root'));
