@@ -260,13 +260,13 @@ function Login(props: {tellparent: (a: string, b: string, c: string) => void}) {
               'div',
               {className: 'input-group'},
               ce('label', null, 'URL'),
-              ce('input', {type: 'text', value: url, onChange: e => setURL(e.target.value)}),
+              ce('input', {type: 'email', value: url, onChange: e => setURL(e.target.value)}),
               ),
           ce(
               'div',
               {className: 'input-group'},
               ce('label', null, 'Username'),
-              ce('input', {type: 'text', value: username, onChange: e => setUsername(e.target.value)}),
+              ce('input', {type: 'email', value: username, onChange: e => setUsername(e.target.value)}),
               ),
           ce(
               'div',
