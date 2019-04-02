@@ -204,7 +204,19 @@ function Login(props) {
             e.preventDefault();
             props.tellparent(url, username, token);
         }
-    }, ce('div', { className: 'input-group' }, ce('label', null, 'URL'), ce('input', { type: 'email', value: url, onChange: e => setURL(e.target.value) })), ce('div', { className: 'input-group' }, ce('label', null, 'Username'), ce('input', { type: 'email', value: username, onChange: e => setUsername(e.target.value) })), ce('div', { className: 'input-group' }, ce('label', null, 'Token'), ce('input', { type: 'password', value: token, onChange: e => setToken(e.target.value) })), ce('input', { type: 'submit', value: 'Login' })));
+    }, ce('div', { className: 'input-group' }, ce('label', null, 'URL'), ce('input', {
+        type: 'text',
+        autoCapitalize: 'none',
+        autoCorrect: 'off',
+        value: url,
+        onChange: e => setURL(e.target.value)
+    })), ce('div', { className: 'input-group' }, ce('label', null, 'Username'), ce('input', {
+        type: 'text',
+        autoCapitalize: 'none',
+        autoCorrect: 'off',
+        value: username,
+        onChange: e => setUsername(e.target.value)
+    })), ce('div', { className: 'input-group' }, ce('label', null, 'Token'), ce('input', { type: 'password', value: token, onChange: e => setToken(e.target.value) })), ce('input', { type: 'submit', value: 'Login' })));
 }
 function initializeGit(loginfo, setSetupComplete, setFilesList) {
     return __awaiter(this, void 0, void 0, function* () {
