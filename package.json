@@ -5,7 +5,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc -p .",
-    "bundle": "browserify client.js -o client.bundle.js -s client --ignore-missing"
+    "bundle": "browserify client.js -o client.bundle.js -s client --ignore-missing && cp node_modules/mini.css/dist/mini-dark.min.css ."
   },
   "keywords": [],
   "author": "Ahmed Fasih",
@@ -22,6 +22,7 @@
     "@isomorphic-git/lightning-fs": "^3.0.3",
     "curtiz": "git+https://github.com/fasiha/curtiz.git",
     "isomorphic-git": "^0.51.12",
+    "mini.css": "^3.0.1",
     "pify": "^4.0.1",
     "react": "^16.8.3",
     "react-dom": "^16.8.3"

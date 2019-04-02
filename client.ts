@@ -52,10 +52,9 @@ function Quiz(props: {allDoneFunc: () => void, bestQuiz: BestQuiz}) {
     let summary = props.bestQuiz.finalQuizzable.header;
     const init = curtiz.markdown.SentenceBlock.init;
     summary = summary.slice(summary.indexOf(init) + init.length);
-    const finalSummary =
-        correct
-            ? ('💥 🔥 🎆 🎇 👏 🙌 👍 👌! ' + summary)
-            : (`😭 🙅‍♀️ 🙅‍♂️ 👎 🤬. ${answer} ∉ 「${clozes.join(', ')}」 for ${summary}`);
+    const finalSummary = correct
+                             ? ('🙆‍♂️🙆‍♀️ ' + summary)
+                             : (`🙅‍♀️🙅‍♂️. ${answer} ∉ 「${clozes.join(', ')}」 for ${summary}`);
     setFinalSummaries(finalSummaries.concat(finalSummary));
     props.allDoneFunc();
     setAnswer('');
@@ -257,11 +256,24 @@ function Login(props: {tellparent: (a: string, b: string, c: string) => void}) {
               props.tellparent(url, username, token);
             }
           },
-          ce('label', null, 'URL: ', ce('input', {type: 'text', value: url, onChange: e => setURL(e.target.value)})),
-          ce('label', null,
-             'Username: ', ce('input', {type: 'text', value: username, onChange: e => setUsername(e.target.value)})),
-          ce('label', null,
-             'token: ', ce('input', {type: 'password', value: token, onChange: e => setToken(e.target.value)})),
+          ce(
+              'div',
+              {className: 'input-group'},
+              ce('label', null, 'URL'),
+              ce('input', {type: 'text', value: url, onChange: e => setURL(e.target.value)}),
+              ),
+          ce(
+              'div',
+              {className: 'input-group'},
+              ce('label', null, 'Username'),
+              ce('input', {type: 'text', value: username, onChange: e => setUsername(e.target.value)}),
+              ),
+          ce(
+              'div',
+              {className: 'input-group'},
+              ce('label', null, 'Token'),
+              ce('input', {type: 'password', value: token, onChange: e => setToken(e.target.value)}),
+              ),
           ce('input', {type: 'submit', value: 'Login'}),
           ),
   );
@@ -336,8 +348,9 @@ function Git(props: {}) {
   return ce(
       'div',
       null,
-      ce(Login, {tellparent: (...v: string[]) => { setLonginfo(v); }}),
+      ce(Login, {className: 'row', tellparent: (...v: string[]) => { setLonginfo(v); }}),
       ce(Fileslist, {
+        className: 'row',
         tellparent: (file: string, checked: boolean) => {
           let val = FILESCONTENTS.get(file);
           if (val) { val.checked = checked; }
@@ -350,8 +363,11 @@ function Git(props: {}) {
         },
         ls: filesList
       }),
-      setupComplete ? ce(IzumiSession, {filesOn: filesOnList, user: loginfo[1], token: loginfo[2]}) : '',
+      setupComplete ? ce(IzumiSession, {className: 'row', filesOn: filesOnList, user: loginfo[1], token: loginfo[2]})
+                    : '',
   );
 }
 function About() { return ce('div', null, ce('a', {href: 'https://github.com/fasiha/curtiz-web#readme'}, 'About')); }
-ReactDOM.render(ce('div', null, ce(Git), ce(About)), document.getElementById('root'));
+ReactDOM.render(
+    ce('div', {className: 'container'}, ce(Git, {className: 'row container'}), ce(About, {className: 'row'})),
+    document.getElementById('root'));
