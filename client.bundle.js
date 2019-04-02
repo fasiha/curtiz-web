@@ -64,7 +64,7 @@ function Quiz(props) {
         setAnswer('');
         setQuizToFinishLearning(false);
     };
-    let element = ce('div', null, ce('h1', null, 'Quiz time!'), ce('p', null, contexts.map(o => o ? o : '___').join('')), quizToFinishLearning
+    let element = ce('div', null, ce('h1', null, 'Quiz time!'), ce('h2', null, contexts.map(o => o ? o : '___').join('')), quizToFinishLearning
         ? ce(Learn, {
             partialLearn: true,
             toLearn: props.bestQuiz.finalQuizzable,
@@ -85,7 +85,7 @@ function Quiz(props) {
     return ce('div', null, element, ce('ul', null, ...mapRight(finalSummaries, s => ce('li', null, s))));
 }
 function ModeSelect(props) {
-    return ce('div', null, ce('input', {
+    return ce('fieldset', null, ce('legend', null, 'Mode'), ce('input', {
         type: 'radio',
         id: 'modeQuiz',
         name: 'quizSelect',
@@ -231,15 +231,11 @@ Vocabulary from Human Japanese app (on iOS).
 
 ## Time
 #### ◊sent きょう :: today :: 今日
-- ◊related hi :: ?? :: hi
 #### ◊sent きのう :: yesterday :: 昨日
-- ◊related hi2 :: ?? :: hi2
 - ◊Ebisu1 reading 2019-02-21T01:25:10.998Z, 1.249e+0,8.081e+0,1.394e+3
 #### ◊sent あした :: tomorrow :: 明日
-- ◊related hi3 :: ?? :: hi3
 - ◊Ebisu1 reading 2019-03-13T05:33:19.221Z, 2.843e-1,9.772e+0,1.876e+3
 #### ◊sent おととい :: day before yesterday :: 一昨日
-- ◊related hi4 :: ?? :: hi4
 - ◊Ebisu1 reading 2019-03-13T05:28:28.572Z, 3.000e+0,3.000e+0,2.500e-1
 #### ◊sent あさって :: day after tomorrow :: 明後日
 - ◊related hi5 :: ?? :: hi5
@@ -270,7 +266,7 @@ function Fileslist(props) {
             onClick: e => { props.tellparent(f, e.target.checked); }
         }),
         ce('label', { htmlFor: 'check-' + f }, f)]));
-    return ce('div', null, ...flat);
+    return ce('fieldset', null, ce('legend', null, 'Files to use'), ...flat);
 }
 function Git(props) {
     const [loginfo, setLonginfo] = react_1.useState(["", "", ""]);
