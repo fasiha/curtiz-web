@@ -13,7 +13,6 @@ function mapRight<T, U>(v: T[], mapper: (x: T, i?: number, v?: T[]) => U): U[] {
 function* enumerate<T>(v: T[]|IterableIterator<T>, n: number = 0): IterableIterator<[number, T]> {
   for (let x of v) { yield [n++, x]; }
 }
-function flatten1(vov: any[][]): any[] { return vov.reduce((old, curr) => old.concat(curr), []); }
 
 function parseFileContents(text: string) { return curtiz.markdown.textToBlocks(text); }
 function contentsToBestQuiz(contents: curtiz.markdown.Content[][], randomize: boolean) {
@@ -337,13 +336,13 @@ Vocabulary from Human Japanese app (on iOS).
 }
 
 function Fileslist(props: {ls: string[], tellparent: (file: string, checked: boolean) => void}) {
-  let flat = flatten1(props.ls.map(f => [ce('input', {
-                                           type: 'checkbox',
-                                           id: 'check-' + f,
-                                           name: 'check-' + f,
-                                           onClick: e => { props.tellparent(f, (e.target as any).checked) }
-                                         }),
-                                         ce('label', {htmlFor: 'check-' + f}, f)]));
+  let flat = props.ls.map(f => ce('div', {className: 'input-group'}, ce('input', {
+                                    type: 'checkbox',
+                                    id: 'check-' + f,
+                                    name: 'check-' + f,
+                                    onClick: e => { props.tellparent(f, (e.target as any).checked); }
+                                  }),
+                                  ce('label', {htmlFor: 'check-' + f}, f)));
   return ce('fieldset', null, ce('legend', null, 'Files to use'), ...flat);
 }
 

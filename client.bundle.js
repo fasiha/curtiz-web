@@ -33,7 +33,6 @@ function* enumerate(v, n = 0) {
         yield [n++, x];
     }
 }
-function flatten1(vov) { return vov.reduce((old, curr) => old.concat(curr), []); }
 function parseFileContents(text) { return curtiz.markdown.textToBlocks(text); }
 function contentsToBestQuiz(contents, randomize) {
     const findBestQuiz = curtiz.markdown.findBestQuiz;
@@ -259,13 +258,12 @@ Vocabulary from Human Japanese app (on iOS).
     });
 }
 function Fileslist(props) {
-    let flat = flatten1(props.ls.map(f => [ce('input', {
-            type: 'checkbox',
-            id: 'check-' + f,
-            name: 'check-' + f,
-            onClick: e => { props.tellparent(f, e.target.checked); }
-        }),
-        ce('label', { htmlFor: 'check-' + f }, f)]));
+    let flat = props.ls.map(f => ce('div', { className: 'input-group' }, ce('input', {
+        type: 'checkbox',
+        id: 'check-' + f,
+        name: 'check-' + f,
+        onClick: e => { props.tellparent(f, e.target.checked); }
+    }), ce('label', { htmlFor: 'check-' + f }, f)));
     return ce('fieldset', null, ce('legend', null, 'Files to use'), ...flat);
 }
 function Git(props) {
