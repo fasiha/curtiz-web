@@ -145,13 +145,17 @@ function IzumiSession(props: {filesOn: string[], user: string, token: string}) {
             ce(Quiz, {
               allDoneFunc: async () => {
                 setQuestionNumber(questionNumber + 1);
-                let res = await gitio.writeFileCommit(props.filesOn[finalIndex],
-                                                      curtiz.markdown.contentToString(contents[finalIndex]),
-                                                      'Commit quiz, ' + (new Date()).toISOString());
-                console.log('commit res', res);
+                await gitio.writeFileCommit(props.filesOn[finalIndex],
+                                            curtiz.markdown.contentToString(contents[finalIndex]),
+                                            'Commit quiz, ' + (new Date()).toISOString());
                 if (props.user && props.token) {
-                  let err = await gitio.commit(props.user, props.token);
-                  console.log('push err', err);
+                  try {
+                    const err = await gitio.push(props.user, props.token);
+                    if (err) { throw err; }
+                  } catch (e) {
+                    console.log('push err', e);
+                    location.reload();
+                  }
                 }
               },
               bestQuiz: {finalQuiz, finalQuizzable: finalLozengeBlock, finalPrediction, finalIndex}
@@ -178,7 +182,7 @@ function IzumiSession(props: {filesOn: string[], user: string, token: string}) {
                                                 'Commit learn, ' + (new Date()).toISOString());
           console.log('commit res', res);
           if (props.user && props.token) {
-            let err = await gitio.commit(props.user, props.token);
+            let err = await gitio.push(props.user, props.token);
             console.log('push err', err);
           }
         }

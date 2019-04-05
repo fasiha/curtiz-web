@@ -18,7 +18,7 @@ export async function setup(url: string) {
   return git.clone({dir, corsProxy: CORSPROXY, url, ref: 'master', singleBranch: true, depth: 1});
 }
 
-export async function commit(username: string, token: string) {
+export async function push(username: string, token: string) {
   let pushres = await git.push({dir, username, token});
   return pushres.errors;
 }
