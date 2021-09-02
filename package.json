@@ -21,7 +21,7 @@
   "dependencies": {
     "@isomorphic-git/lightning-fs": "^3.0.3",
     "curtiz": "git+https://github.com/fasiha/curtiz.git#v1.1",
-    "isomorphic-git": "^0.51.12",
+    "isomorphic-git": "^1.8.2",
     "mini.css": "^3.0.1",
     "pify": "^4.0.1",
     "react": "^16.8.3",
